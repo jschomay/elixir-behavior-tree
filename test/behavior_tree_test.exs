@@ -1,14 +1,16 @@
 defmodule BehaviorTreeTest do
   use ExUnit.Case
   alias BehaviorTree, as: BT
+  alias BehaviorTree.Node
 
   doctest BehaviorTree
+  doctest Node
 
   setup do
     tree =
-      BT.sequence([
-        BT.sequence([:a, :b, :c]),
-        BT.select([:x, :y, BT.select([:z])]),
+      Node.sequence([
+        Node.sequence([:a, :b, :c]),
+        Node.select([:x, :y, Node.select([:z])]),
         :done
       ])
 
@@ -23,7 +25,7 @@ defmodule BehaviorTreeTest do
     end
 
     test "starts over when reaching the end" do
-      tree = BT.select([:a, :b])
+      tree = Node.select([:a, :b])
       tree = tree |> BT.start() |> BT.succeed() |> BT.succeed()
       assert BT.value(tree) == :a
     end

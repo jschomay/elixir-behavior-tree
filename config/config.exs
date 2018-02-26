@@ -6,7 +6,7 @@ if Mix.env == :dev do
   config :mix_test_watch,
     tasks: [
       "test",
-      "format lib/* --check-formatted",
+      "format lib/*.ex --check-formatted",
     ]
 end
 

@@ -1,16 +1,3 @@
-defmodule BTNode do
-  @moduledoc """
-  A behavior tree node type.
-
-  Currently only supports "select" and "sequence" style nodes.
-  """
-
-  @enforce_keys [:type, :children]
-  defstruct [:type, :children]
-
-  @opaque t :: %__MODULE__{type: String.t(), children: list(BTNode.t() | any())}
-end
-
 defmodule BehaviorTree do
   @moduledoc """
   A library for building [behavior trees](https://en.wikipedia.org/wiki/Behavior_tree_(artificial_intelligence,_robotics_and_control)).
@@ -49,9 +36,9 @@ defmodule BehaviorTree do
 
   This AI doesn't really have a strategy, and doesn't require a behavior tree, but it is a place to start.
 
-      ai_a = BT.sequence([:random_guess])
+      ai_a = Node.sequence([:random_guess])
 
-  Every play, calling `BT.value` will return `:random_guess`.  Responding to that "behavior" with either `BT.fail` or `BT.succeed` will not change what we get next time around.
+  Every play, calling `BehaviorTree.value` will return `:random_guess`.  Responding to that "behavior" with either `BehaviorTree.fail` or `BehaviorTree.succeed` will not change what we get next time around.
 
   Note that the root of the tree will "start over" if it fails or succeeds, which is what keeps it running even after traversing all of the nodes.
 
@@ -62,20 +49,20 @@ defmodule BehaviorTree do
   We can encode a brute force strategy as a tree:
 
       row_by_row =
-        BT.continually(
-          BT.select([
+        Node.continually(
+          Node.select([
             :go_right,
             :beginning_of_next_row
           ])
         )
 
       ai_b =
-        BT.sequence([
+        Node.sequence([
           :top_left,
           row_by_row
         ])
 
-  "B" is notably more complex, making use of three different inner nodes.  `BT.continually` will repeat its one child node until it fails (in this case, it will only fail after all of the board has been guessed).  Note that "B" depends on the handler code to keep track of its last guess, but it always requests a single, discrete next guess.  Each time `:go_right` succeeds, the `select` node will succeed, and the `continually` node will restart it.  If `go_right` goes off the board (aka "fails"), the `select` node will move on to `:beginning_of_next_row`, which the handling code will succeed, which will "bubble up" to the `select` and `continually` nodes, restarting again at `:go_right` for the next call.
+  "B" is notably more complex, making use of three different inner nodes.  `Node.continually` will repeat its one child node until it fails (in this case, it will only fail after all of the board has been guessed).  Note that "B" depends on the handler code to keep track of its last guess, but it always requests a single, discrete next guess.  Each time `:go_right` succeeds, the `select` node will succeed, and the `continually` node will restart it.  If `go_right` goes off the board (aka "fails"), the `select` node will move on to `:beginning_of_next_row`, which the handling code will succeed, which will "bubble up" to the `select` and `continually` nodes, restarting again at `:go_right` for the next call.
 
   Note that any time the value of the tree fails, the handler code won't have a valid coordinate, requiring an additional "tick" through the tree in order to get a valid guess.
 
@@ -84,34 +71,35 @@ defmodule BehaviorTree do
   AI "C" is the smartest of the bunch, randomly guessing until getting a "hit", and then scanning left, right, up, or down appropriately until getting a "sunk."
 
       search_horizontally =
-        BT.select([
+        Node.select([
           :go_right,
           :go_left
         ])
 
       search_vertically =
-        BT.select([
+        Node.select([
           :go_up,
           :go_down
         ])
 
       narrow_down =
-        BT.select([
+        Node.select([
           search_horizontally,
           search_vertically
         ])
 
       ai_c =
-        BT.sequence([
+        Node.sequence([
           :random_guess,
           narrow_down
         ])
 
-  "C" is quite complex, and requires specific feedback from the handler code.  When randomly guessing, a "miss" should get a `BT.fail`, a "hit" should get a `BT.succeed`, and a "sunk" should not update the tree at all, so that it will still be making random guesses next time (note that `BT.fail` would work the same in this case, but is less clear).
+  "C" is quite complex, and requires specific feedback from the handler code.  When randomly guessing, a "miss" should get a `BehaviorTree.fail`, a "hit" should get a `BehaviorTree.succeed`, and a "sunk" should not update the tree at all, so that it will still be making random guesses next time (note that `BehaviorTree.fail` would work the same in this case, but is less clear).
 
-  When narrowing down, a "hit" should leave the tree as it is for next time, a "miss" should get a `BT.fail`, and a "sunk" should get a `BT.success`.  In the case that a guess is invalid (goes off the board), it should respond with a `BT.fail` and run it again.
+  When narrowing down, a "hit" should leave the tree as it is for next time, a "miss" should get a `BehaviorTree.fail`, and a "sunk" should get a `BehaviorTree.success`.  In the case that a guess is invalid (goes off the board), it should respond with a `BehaviorTree.fail` and run it again.
   """
   alias ExZipper.Zipper
+  alias BehaviorTree.Node
 
   defstruct [:zipper]
 
@@ -126,26 +114,26 @@ defmodule BehaviorTree do
 
   ## Example
 
-      iex> tree = BehaviorTree.sequence([
-      ...>          BehaviorTree.sequence([:a, :b, :c]),
-      ...>          BehaviorTree.select([:x, :y, :z]),
+      iex> tree = Node.sequence([
+      ...>          Node.sequence([:a, :b, :c]),
+      ...>          Node.select([:x, :y, :z]),
       ...>          :done
       ...>        ])
       iex> tree |> BehaviorTree.start |> BehaviorTree.value
       :a
 
   """
-  @spec start(BTNode.t()) :: __MODULE__.t()
-  def start(node = %BTNode{}) do
+  @spec start(Node.t()) :: __MODULE__.t()
+  def start(node = %Node{}) do
     Zipper.zipper(
       fn
-        %BTNode{} -> true
+        %Node{} -> true
         _leaf -> false
       end,
-      fn %BTNode{children: children} -> children end,
+      fn %Node{children: children} -> children end,
       fn
-        %BTNode{} = node, children -> %BTNode{node | children: children}
-        _node, children -> %BTNode{type: :select, children: children}
+        %Node{} = node, children -> %Node{node | children: children}
+        _node, children -> %Node{type: :select, children: children}
       end,
       node
     )
@@ -172,7 +160,7 @@ defmodule BehaviorTree do
       parent = Zipper.up(zipper)
 
       case Zipper.node(parent) do
-        %BTNode{type: :sequence} ->
+        %Node{type: :sequence} ->
           case Zipper.right(zipper) do
             {:error, :right_from_rightmost} ->
               succeed_(parent)
@@ -181,7 +169,7 @@ defmodule BehaviorTree do
               descend_to_leaf(next)
           end
 
-        %BTNode{type: :select} ->
+        %Node{type: :select} ->
           succeed_(parent)
       end
     end
@@ -206,10 +194,10 @@ defmodule BehaviorTree do
       parent = Zipper.up(zipper)
 
       case Zipper.node(parent) do
-        %BTNode{type: :sequence} ->
+        %Node{type: :sequence} ->
           fail_(parent)
 
-        %BTNode{type: :select} ->
+        %Node{type: :select} ->
           case Zipper.right(zipper) do
             {:error, :right_from_rightmost} ->
               fail_(parent)
@@ -234,7 +222,7 @@ defmodule BehaviorTree do
   @spec descend_to_leaf(Zipper.t()) :: Zipper.t()
   defp descend_to_leaf(zipper) do
     case Zipper.node(zipper) do
-      %BTNode{} ->
+      %Node{} ->
         zipper
         |> Zipper.down()
         |> descend_to_leaf
@@ -242,70 +230,5 @@ defmodule BehaviorTree do
       _leaf ->
         zipper
     end
-  end
-
-  @doc """
-  Create a "select" style node with the supplied children.
-
-  This node always goes from left to right, moving on to the next child when the current one fails.  Succeeds immediately if any child succeeds, fails if all children fail.
-
-  The children can be a mix of other nodes to create deeper trees, or any other value to create a leaf (an atom or function is recommended).
-
-  ## Example
-
-      iex> tree = BehaviorTree.select([:a, :b])
-      iex> tree |> BehaviorTree.start |> BehaviorTree.fail |> BehaviorTree.value
-      :b
-
-      iex> tree = BehaviorTree.select([
-      ...>          BehaviorTree.select([:a, :b]),
-      ...>          :c
-      ...>        ])
-      iex> tree |> BehaviorTree.start |> BehaviorTree.fail |> BehaviorTree.fail |> BehaviorTree.value
-      :c
-
-      iex> tree = BehaviorTree.sequence([
-      ...>          BehaviorTree.select([:a, :b]),
-      ...>          :c
-      ...>        ])
-      iex> tree |> BehaviorTree.start |> BehaviorTree.succeed |> BehaviorTree.value
-      :c
-
-  """
-  @spec select(list()) :: BTNode.t()
-  def select(children) when is_list(children) do
-    %BTNode{type: :select, children: children}
-  end
-
-  @doc """
-  Create a "sequence" style node with the supplied children.
-
-  This node always goes from left to right, moving on to the next child when the current one succeeds.  Succeeds if all children succeed, fails immediately if any child fails.
-
-  The children can be a mix of other nodes to create deeper trees, or any other value to create a leaf (an atom or function is recommended).
-
-  ## Example
-
-      iex> tree = BehaviorTree.sequence([:a, :b])
-      iex> tree |> BehaviorTree.start |> BehaviorTree.succeed |> BehaviorTree.value
-      :b
-
-      iex> tree = BehaviorTree.sequence([
-      ...>          BehaviorTree.sequence([:a, :b]),
-      ...>          :c
-      ...>        ])
-      iex> tree |> BehaviorTree.start |> BehaviorTree.succeed |> BehaviorTree.succeed |> BehaviorTree.value
-      :c
-
-      iex> tree = BehaviorTree.select([
-      ...>          BehaviorTree.sequence([:a, :b]),
-      ...>          :c
-      ...>        ])
-      iex> tree |> BehaviorTree.start |> BehaviorTree.fail |> BehaviorTree.value
-      :c
-  """
-  @spec sequence(list()) :: BTNode.t()
-  def sequence(children) when is_list(children) do
-    %BTNode{type: :sequence, children: children}
   end
 end
