@@ -2,12 +2,14 @@ defmodule BehaviorTree.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :behavior_tree,
-     version: "0.1.0",
-     elixir: "~> 1.6",
-     build_embedded: Mix.env == :prod,
-     start_permanent: Mix.env == :prod,
-     deps: deps()]
+    [
+      app: :behavior_tree,
+      version: "0.1.0",
+      elixir: "~> 1.6",
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
+      deps: deps()
+    ]
   end
 
   # Configuration for the OTP application
@@ -28,6 +30,11 @@ defmodule BehaviorTree.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    []
+    [
+      {:ex_doc, "~> 0.16", only: :dev, runtime: false},
+      {:ex_zipper, "~> 0.1.3"},
+      {:credo, "~> 0.9.0-rc1", only: [:dev, :test], runtime: false},
+      {:mix_test_watch, "~> 0.5", only: :dev, runtime: false}
+    ]
   end
 end
