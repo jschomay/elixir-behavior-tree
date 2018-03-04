@@ -8,7 +8,14 @@ defmodule BehaviorTree.Mixfile do
       elixir: "~> 1.6",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [
+        "coveralls": :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
     ]
   end
 
@@ -34,7 +41,8 @@ defmodule BehaviorTree.Mixfile do
       {:ex_doc, "~> 0.16", only: :dev, runtime: false},
       {:ex_zipper, "~> 0.1.3"},
       {:credo, "~> 0.9.0-rc1", only: [:dev, :test], runtime: false},
-      {:mix_test_watch, "~> 0.5", only: :dev, runtime: false}
+      {:mix_test_watch, "~> 0.5", only: :dev, runtime: false},
+      {:excoveralls, "~> 0.8", only: :test}
     ]
   end
 end
