@@ -23,26 +23,34 @@ defmodule BehaviorTreeTest do
     test "requires a valid Node" do
       assert catch_error(BT.start([:a, :b, :c])) == :function_clause
     end
+  end
 
-    test "starts over when reaching the end" do
+  describe "starts over when reaching the end" do
+    test "from succeed" do
       tree = Node.select([:a, :b])
       tree = tree |> BT.start() |> BT.succeed() |> BT.succeed()
       assert BT.value(tree) == :a
     end
 
-    test "deep tree example", context do
-      assert BT.value(context.bt) == :a
-
-      bt =
-        context.bt
-        |> BT.succeed()
-        |> BT.succeed()
-        |> BT.succeed()
-        |> BT.fail()
-        |> BT.fail()
-        |> BT.succeed()
-
-      assert BT.value(bt) == :done
+    test "from fail" do
+      tree = Node.sequence([:a, :b])
+      tree = tree |> BT.start() |> BT.fail() |> BT.fail()
+      assert BT.value(tree) == :a
     end
+  end
+
+  test "deep tree example", context do
+    assert BT.value(context.bt) == :a
+
+    bt =
+      context.bt
+      |> BT.succeed()
+      |> BT.succeed()
+      |> BT.succeed()
+      |> BT.fail()
+      |> BT.fail()
+      |> BT.succeed()
+
+    assert BT.value(bt) == :done
   end
 end
