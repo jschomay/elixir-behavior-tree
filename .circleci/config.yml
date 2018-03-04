@@ -12,5 +12,6 @@ jobs:
       - run: mix local.rebar --force
       - run: mix deps.get
       - run: mix format lib/*.ex --check-formatted --dry-run
+      - run: mix credo
       - run: mix compile --warnings-as-erros --force
       - run: mix test

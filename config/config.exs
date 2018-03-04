@@ -7,6 +7,7 @@ if Mix.env == :dev do
     tasks: [
       "test",
       "format lib/*.ex --check-formatted",
+      "credo"
     ]
 end
 
