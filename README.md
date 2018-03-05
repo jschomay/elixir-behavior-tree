@@ -1,6 +1,34 @@
 # BehaviorTree
 
-A library for building [behavior trees](https://en.wikipedia.org/wiki/Behavior_tree_(artificial_intelligence,_robotics_and_control)).
+[![Hex version badge](https://img.shields.io/hexpm/v/behavior_tree.svg)](https://hex.pm/packages/behavior_tree)
+[![License badge](https://img.shields.io/hexpm/l/behavior_tree.svg)](https://github.com/jschomay/elixir-behavior-tree/blob/master/LICENSE)
+[![Build status badge](https://img.shields.io/circleci/project/github/jschomay/elixir-behavior-tree/master.svg)](https://circleci.com/gh/jschomay/elixir-behavior-tree/tree/master)
+[![Code coverage badge](https://img.shields.io/codecov/c/github/jschomay/elixir-behavior-tree/master.svg)](https://codecov.io/gh/jschomay/elixir-behavior-tree/branch/master)
+
+A library for building AI's from composable [behavior trees](https://en.wikipedia.org/wiki/Behavior_tree_(artificial_intelligence,_robotics_and_control)).
+
+### Usage
+
+Add `behavior_tree` to your list of dependencies in `mix.exs`:
+
+```elixir
+def deps do
+  [{:behavior_tree, "~> 0.1.0"}]
+end
+```
+
+Basic usage:
+
+```elixir
+iex> tree = Node.sequence([
+...>          Node.select([:a, :b]),
+...>          :c
+...>        ])
+iex> tree |> BehaviorTree.start |> BehaviorTree.succeed |> BehaviorTree.value
+:c
+```
+
+Full documentation at [https://hexdocs.pm/behavior_tree](https://hexdocs.pm/behavior_tree), and see the example below.
 
 ### About
 
@@ -103,19 +131,3 @@ Node.sequence([
 "C" is quite complex, and requires specific feedback from the handler code.  When randomly guessing, a "miss" should get a `BehaviorTree.fail`, a "hit" should get a `BehaviorTree.succeed`, and a "sunk" should not update the tree at all, so that it will still be making random guesses next time (note that `BehaviorTree.fail` would work the same in this case, but is less clear).
 
 When narrowing down, a "hit" should leave the tree as it is for next time, a "miss" should get a `BehaviorTree.fail`, and a "sunk" should get a `BehaviorTree.success`.  In the case that a guess is invalid (goes off the board), it should respond with a `BehaviorTree.fail` and run it again.
-
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `behavior_tree` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [{:behavior_tree, "~> 0.1.0"}]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/behavior_tree](https://hexdocs.pm/behavior_tree).
-
