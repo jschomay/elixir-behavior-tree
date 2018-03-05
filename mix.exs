@@ -1,10 +1,17 @@
 defmodule BehaviorTree.Mixfile do
   use Mix.Project
 
+  @github_url "https://github.com/jschomay/elixir-behavior-tree"
+
   def project do
     [
       app: :behavior_tree,
+      name: "Behavior Tree",
+      description: "A library for building AI's via composable behavior trees.",
       version: "0.1.0",
+      source_url: @github_url,
+      homepage_url: @github_url,
+      files: ~w(mix.exs lib LICENSE README.md CHANGELOG.md),
       elixir: "~> 1.6",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -15,6 +22,13 @@ defmodule BehaviorTree.Mixfile do
         "coveralls.detail": :test,
         "coveralls.post": :test,
         "coveralls.html": :test
+      ],
+      package: [
+        maintainers: ["Jeff Schomay"],
+        licenses: ["MIT"],
+        links: %{
+          "GitHub" => @github_url,
+        }
       ]
     ]
   end
