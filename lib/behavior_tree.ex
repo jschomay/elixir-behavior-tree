@@ -112,6 +112,8 @@ defmodule BehaviorTree do
 
   The initial value will be the leaf reached from following a descent through each node (for a tree of selects and sequences this will be the deepest left-most leaf, but other types of nodes may have different initiation behaviors).
 
+  Note that the supplied argument should be a structure built from Nodes.  You can use the included standard `BehaviorTree.Node`s, or one of your own that implements `BehaviorTree.Node.Protocol`.  Any other value will be treated as a leaf, which would be a pointless behavior tree.
+
   ## Example
 
       iex> tree = Node.sequence([
@@ -123,18 +125,12 @@ defmodule BehaviorTree do
       :a
 
   """
-  @spec start(Node.t()) :: __MODULE__.t()
-  def start(node = %Node{}) do
+  @spec start(any) :: __MODULE__.t()
+  def start(node) do
     Zipper.zipper(
-      fn
-        %Node{} -> true
-        _leaf -> false
-      end,
-      fn %Node{children: children} -> children end,
-      fn
-        %Node{} = node, children -> %Node{node | children: children}
-        _node, children -> %Node{type: :select, children: children}
-      end,
+      fn node -> Node.Protocol.get_children(node) != [] end,
+      fn node -> Node.Protocol.get_children(node) end,
+      fn node, children -> Node.Protocol.set_children(node, children) end,
       node
     )
     |> descend_to_leaf
@@ -142,69 +138,53 @@ defmodule BehaviorTree do
   end
 
   @doc """
-  Triggers the tree to advance to the next state.
+  Signals that the current behavior has "succeeded."  The tree will advance to the next state.
 
-  The active leaf node will trigger its parent to succeed.  The specifics of how the parent will traverse next, depend on the type of node that it is; see the documentation for specific node types.
+  The specifics on how the tree will advance depend on type of node that the succeeded behavior is under.  See the specific node documentation for the traversal logic.
   """
   @spec succeed(__MODULE__.t()) :: __MODULE__.t()
-  def succeed(bt = %__MODULE__{}) do
-    new_focus = succeed_(bt.zipper)
-    %{bt | zipper: new_focus}
-  end
-
-  @spec succeed_(Zipper.t()) :: Zipper.t()
-  defp succeed_(zipper) do
+  def succeed(%__MODULE__{zipper: zipper} = bt) do
     if Zipper.root(zipper) == zipper do
-      descend_to_leaf(zipper)
+      zipper
+      |> descend_to_leaf
+      |> (fn zipper -> %__MODULE__{zipper: zipper} end).()
     else
       parent = Zipper.up(zipper)
 
-      case Zipper.node(parent) do
-        %Node{type: :sequence} ->
-          case Zipper.right(zipper) do
-            {:error, :right_from_rightmost} ->
-              succeed_(parent)
+      case Node.Protocol.on_succeed(Zipper.node(parent), zipper) do
+        :succeed ->
+          %__MODULE__{bt | zipper: parent} |> succeed
 
-            next ->
-              descend_to_leaf(next)
-          end
-
-        %Node{type: :select} ->
-          succeed_(parent)
+        %Zipper{} = new_zipper ->
+          new_zipper
+          |> descend_to_leaf
+          |> (fn zipper -> %__MODULE__{zipper: zipper} end).()
       end
     end
   end
 
   @doc """
-  Triggers the tree to advance to the next state.
+  Signals that the current behavior has "failed."  The tree will advance to the next state.
 
-  The active leaf node will trigger its parent to fail.  The specifics of how the parent will traverse next, depend on the type of node that it is; see the documentation for specific node types.
+  The specifics on how the tree will advance depend on type of node that the failed behavior is under.  See the specific node documentation for the traversal logic.
   """
   @spec fail(__MODULE__.t()) :: __MODULE__.t()
-  def fail(bt = %__MODULE__{}) do
-    new_focus = fail_(bt.zipper)
-    %{bt | zipper: new_focus}
-  end
-
-  @spec fail_(Zipper.t()) :: Zipper.t()
-  defp fail_(zipper) do
+  def fail(%__MODULE__{zipper: zipper} = bt) do
     if Zipper.root(zipper) == zipper do
-      descend_to_leaf(zipper)
+      zipper
+      |> descend_to_leaf
+      |> (fn zipper -> %__MODULE__{zipper: zipper} end).()
     else
       parent = Zipper.up(zipper)
 
-      case Zipper.node(parent) do
-        %Node{type: :sequence} ->
-          fail_(parent)
+      case Node.Protocol.on_fail(Zipper.node(parent), zipper) do
+        :fail ->
+          %__MODULE__{bt | zipper: parent} |> fail
 
-        %Node{type: :select} ->
-          case Zipper.right(zipper) do
-            {:error, :right_from_rightmost} ->
-              fail_(parent)
-
-            next ->
-              descend_to_leaf(next)
-          end
+        %Zipper{} = new_zipper ->
+          new_zipper
+          |> descend_to_leaf
+          |> (fn zipper -> %__MODULE__{zipper: zipper} end).()
       end
     end
   end
@@ -215,20 +195,18 @@ defmodule BehaviorTree do
   This will always be one of the leaf nodes, based on the current state of the tree.
   """
   @spec value(__MODULE__.t()) :: any()
-  def value(bt = %__MODULE__{}) do
+  def value(%__MODULE__{} = bt) do
     Zipper.node(bt.zipper)
   end
 
   @spec descend_to_leaf(Zipper.t()) :: Zipper.t()
   defp descend_to_leaf(zipper) do
-    case Zipper.node(zipper) do
-      %Node{} ->
+    case Node.Protocol.first_child(Zipper.node(zipper), zipper) do
+      ^zipper ->
         zipper
-        |> Zipper.down()
-        |> descend_to_leaf
 
-      _leaf ->
-        zipper
+      %Zipper{} = zipper ->
+        descend_to_leaf(zipper)
     end
   end
 end

@@ -19,9 +19,10 @@ defmodule BehaviorTreeTest do
     {:ok, %{bt: bt}}
   end
 
-  describe "start/1" do
-    test "requires a valid Node" do
-      assert catch_error(BT.start([:a, :b, :c])) == :function_clause
+  describe "nodes" do
+    test "don't take empty lists" do
+      assert catch_error(Node.sequence([]))
+      assert catch_error(Node.select([]))
     end
   end
 
