@@ -80,12 +80,12 @@ We can encode a brute force strategy as a tree:
 
 ```elixir
 row_by_row =
-Node.continually(
+Node.repeat_until_fail(
     Node.select([
-      :go_right,
-      :beginning_of_next_row
+        :go_right,
+        :beginning_of_next_row
     ])
-    )
+)
 
 ai_b =
 Node.sequence([
@@ -94,7 +94,7 @@ Node.sequence([
 ])
 ```
 
-"B" is notably more complex, making use of three different inner nodes.  `Node.continually` will repeat its one child node until it fails (in this case, it will only fail after all of the board has been guessed).  Note that "B" depends on the handler code to keep track of its last guess, but it always requests a single, discrete next guess.  Each time `:go_right` succeeds, the `select` node will succeed, and the `continually` node will restart it.  If `go_right` goes off the board (aka "fails"), the `select` node will move on to `:beginning_of_next_row`, which the handling code will succeed, which will "bubble up" to the `select` and `continually` nodes, restarting again at `:go_right` for the next call.
+"B" is notably more complex, making use of three different inner nodes.  `Node.repeat_until_fail` will repeat its one child node until it fails (in this case, it will only fail after `:beginning_of_next_row` fails, which would happen after all of the board has been guessed).  Each time `:go_right` succeeds, the `select` node will succeed, and the `repeat_until_fail` node will restart it.  If `go_right` goes off the board, the handler code will fail it, and the `select` node will move on to `:beginning_of_next_row`, which the handling code will succeed, which will "bubble up" to the `select` and `repeat_until_fail` nodes, restarting again at `:go_right` for the next call.
 
 Note that any time the value of the tree fails, the handler code won't have a valid coordinate, requiring an additional "tick" through the tree in order to get a valid guess.
 
