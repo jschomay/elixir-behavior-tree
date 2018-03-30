@@ -11,6 +11,8 @@ defprotocol BehaviorTree.Node.Protocol do
   Each function will provide your node as the first argument as per the protocol standard, but many will also include the current zipper as the second argument.
 
   For examples, look at the source of the standard `BehaviorTree.Node`s.
+
+  Note that your nodes can be stateful if necessary, see the implementation for `BehaviorTree.Node.repeat_n/2` for an example.
   """
 
   @fallback_to_any true
@@ -72,8 +74,8 @@ defmodule BehaviorTree.Node do
   """
   alias ExZipper.Zipper
 
-  defstruct [:type, :children]
-  @opaque t :: %__MODULE__{type: String.t(), children: list(any())}
+  defstruct [:type, :children, :repeat_count]
+  @opaque t :: %__MODULE__{type: String.t(), children: list(any()), repeat_count: pos_integer()}
 
   defimpl BehaviorTree.Node.Protocol do
     def set_children(%BehaviorTree.Node{} = data, children) do
@@ -84,7 +86,7 @@ defmodule BehaviorTree.Node do
 
     def first_child(_data, zipper), do: Zipper.down(zipper)
 
-    def on_succeed(%BehaviorTree.Node{type: type}, zipper) do
+    def on_succeed(%BehaviorTree.Node{type: type, repeat_count: repeat_count}, zipper) do
       case type do
         :sequence ->
           case Zipper.right(zipper) do
@@ -103,10 +105,20 @@ defmodule BehaviorTree.Node do
 
         :repeat_until_succeed ->
           :succeed
+
+        :repeat_n ->
+          if repeat_count > 1 do
+            zipper
+            |> Zipper.up()
+            |> Zipper.edit(&%BehaviorTree.Node{&1 | repeat_count: repeat_count - 1})
+            |> Zipper.down()
+          else
+            :succeed
+          end
       end
     end
 
-    def on_fail(%BehaviorTree.Node{type: type}, zipper) do
+    def on_fail(%BehaviorTree.Node{type: type, repeat_count: repeat_count}, zipper) do
       case type do
         :sequence ->
           :fail
@@ -125,6 +137,16 @@ defmodule BehaviorTree.Node do
 
         :repeat_until_succeed ->
           zipper
+
+        :repeat_n ->
+          if repeat_count > 1 do
+            zipper
+            |> Zipper.up()
+            |> Zipper.edit(&%BehaviorTree.Node{&1 | repeat_count: repeat_count - 1})
+            |> Zipper.down()
+          else
+            :succeed
+          end
       end
     end
   end
@@ -258,5 +280,30 @@ defmodule BehaviorTree.Node do
   @spec repeat_until_succeed(any()) :: __MODULE__.t()
   def repeat_until_succeed(child) do
     %__MODULE__{type: :repeat_until_succeed, children: [child]}
+  end
+
+  @doc """
+  Create a "repeat_n" style "decorator" node.
+
+  This node takes an integer greater than 1, and a single child, which it will repeatedly return n times, regardless of if the child fails or succeeds.  After that, this node will succeed.  This node never fails, and always runs n times.
+
+  You may find it useful to nest one of the other nodes under this node if you want a collection of children to repeat.
+
+  ## Example
+
+      iex> tree = Node.sequence([
+      ...>          Node.repeat_n(2, :a),
+      ...>          :b
+      ...>        ])
+      iex> tree |> BehaviorTree.start |> BehaviorTree.value
+      :a
+      iex> tree |> BehaviorTree.start |> BehaviorTree.fail |> BehaviorTree.value
+      :a
+      iex> tree |> BehaviorTree.start |> BehaviorTree.fail |> BehaviorTree.fail |> BehaviorTree.value
+      :b
+  """
+  @spec repeat_n(pos_integer, any()) :: __MODULE__.t()
+  def repeat_n(n, child) when n > 1 do
+    %__MODULE__{type: :repeat_n, children: [child], repeat_count: n}
   end
 end

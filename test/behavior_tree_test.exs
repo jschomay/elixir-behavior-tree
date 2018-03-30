@@ -55,7 +55,20 @@ defmodule BehaviorTreeTest do
     assert BT.value(bt) == :done
   end
 
-  # TODO `repeat_n`
+  test "repeat_n for success branch (not done in doctests)" do
+    tree =
+      Node.sequence([
+        Node.repeat_n(2, :a),
+        :b
+      ])
+
+    assert tree |> BehaviorTree.start() |> BehaviorTree.value() == :a
+    assert tree |> BehaviorTree.start() |> BehaviorTree.succeed() |> BehaviorTree.value() == :a
+
+    assert tree |> BehaviorTree.start() |> BehaviorTree.succeed() |> BehaviorTree.succeed()
+           |> BehaviorTree.value() == :b
+  end
+
   # TODO `randomly`
   # TODO `randomly_weighted`
   # TODO run dialyzer
