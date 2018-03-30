@@ -100,6 +100,9 @@ defmodule BehaviorTree.Node do
 
         :repeat_until_fail ->
           zipper
+
+        :repeat_until_succeed ->
+          :succeed
       end
     end
 
@@ -119,6 +122,9 @@ defmodule BehaviorTree.Node do
 
         :repeat_until_fail ->
           :succeed
+
+        :repeat_until_succeed ->
+          zipper
       end
     end
   end
@@ -217,5 +223,40 @@ defmodule BehaviorTree.Node do
   @spec repeat_until_fail(any()) :: __MODULE__.t()
   def repeat_until_fail(child) do
     %__MODULE__{type: :repeat_until_fail, children: [child]}
+  end
+
+  @doc """
+  Create a "repeat_until_succeed" style "decorator" node.
+
+  This node only takes a single child, which it will repeatedly return until the child succeeds, at which point this node will succeed.  This node never fails, but it may run forever if the child never succeeds.
+
+  You may find it useful to nest one of the other nodes under this node if you want a collection of children to repeat.
+
+  ## Example
+
+      iex> tree = Node.sequence([
+      ...>          Node.repeat_until_succeed(:a),
+      ...>          :b
+      ...>        ])
+      iex> tree |> BehaviorTree.start |> BehaviorTree.fail |> BehaviorTree.fail |> BehaviorTree.value
+      :a
+
+      iex> tree = Node.sequence([
+      ...>          Node.repeat_until_succeed(:a),
+      ...>          :b
+      ...>        ])
+      iex> tree |> BehaviorTree.start |> BehaviorTree.fail |> BehaviorTree.succeed |> BehaviorTree.value
+      :b
+
+      iex> tree = Node.sequence([
+      ...>          Node.repeat_until_succeed(Node.sequence([:a, :b])),
+      ...>          :c
+      ...>        ])
+      iex> tree |> BehaviorTree.start |> BehaviorTree.succeed |> BehaviorTree.succeed |> BehaviorTree.value
+      :c
+  """
+  @spec repeat_until_succeed(any()) :: __MODULE__.t()
+  def repeat_until_succeed(child) do
+    %__MODULE__{type: :repeat_until_succeed, children: [child]}
   end
 end

@@ -55,7 +55,6 @@ defmodule BehaviorTreeTest do
     assert BT.value(bt) == :done
   end
 
-  # TODO `repeat_until_succeed`
   # TODO `repeat_n`
   # TODO `randomly`
   # TODO `randomly_weighted`
