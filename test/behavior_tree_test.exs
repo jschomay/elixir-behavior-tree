@@ -69,7 +69,6 @@ defmodule BehaviorTreeTest do
            |> BehaviorTree.value() == :b
   end
 
-  # TODO `randomly`
   # TODO `randomly_weighted`
   # TODO run dialyzer
   # TODO update changelog, bump and release

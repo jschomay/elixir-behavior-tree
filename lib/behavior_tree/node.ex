@@ -38,7 +38,7 @@ defprotocol BehaviorTree.Node.Protocol do
   @doc """
   What to do when one of your node's children fail.
 
-  This is the meat of your custom node logic.  You can move the zipper's focus to a different child (usually with `ExZipper.Zipper.next/1`), or signal that your entire node failed or succeeded by returning the special atom `:fail` or `:succeed`.  
+  This is the meat of your custom node logic.  You can move the zipper's focus to a different child (usually with `ExZipper.Zipper.right/1`), or signal that your entire node failed or succeeded by returning the special atom `:fail` or `:succeed`.  
 
   Note that you will need to handle any of the `t:ExZipper.Zipper.error/0` types (like `:right_from_rightmost`) appropriately.
   """
@@ -48,7 +48,7 @@ defprotocol BehaviorTree.Node.Protocol do
   @doc """
   What to do when one of your node's children succeeds.
 
-  This is the meat of your custom node logic.  You can move the zipper's focus to a different child (usually with `ExZipper.Zipper.next/1`), or signal that your entire node failed or succeeded by returning the special atom `:fail` or `:succeed`.
+  This is the meat of your custom node logic.  You can move the zipper's focus to a different child (usually with `ExZipper.Zipper.right/1`), or signal that your entire node failed or succeeded by returning the special atom `:fail` or `:succeed`.
 
   Note that you will need to handle any of the `t:ExZipper.Zipper.error/0` types (like `:right_from_rightmost`) appropriately.
   """
@@ -84,6 +84,14 @@ defmodule BehaviorTree.Node do
 
     def get_children(%BehaviorTree.Node{children: children}), do: children
 
+    def first_child(%BehaviorTree.Node{type: :random, children: children}, zipper) do
+      random_index = :rand.uniform(Enum.count(children)) - 1
+      n_times = [nil] |> Stream.cycle() |> Enum.take(random_index)
+      zipper
+      |> Zipper.down()
+      |> (fn zipper -> Enum.reduce(n_times, zipper, fn _, z -> Zipper.right(z) end) end).()
+    end
+
     def first_child(_data, zipper), do: Zipper.down(zipper)
 
     def on_succeed(%BehaviorTree.Node{type: type, repeat_count: repeat_count}, zipper) do
@@ -115,6 +123,9 @@ defmodule BehaviorTree.Node do
           else
             :succeed
           end
+
+        :random ->
+          :succeed
       end
     end
 
@@ -147,6 +158,9 @@ defmodule BehaviorTree.Node do
           else
             :succeed
           end
+
+        :random ->
+          :fail
       end
     end
   end
@@ -305,5 +319,26 @@ defmodule BehaviorTree.Node do
   @spec repeat_n(pos_integer, any()) :: __MODULE__.t()
   def repeat_n(n, child) when n > 1 do
     %__MODULE__{type: :repeat_n, children: [child], repeat_count: n}
+  end
+
+  @doc """
+  Create a "random" style "decorator" node.
+
+  This node takes multiple children, from which it will randomly pick one to run (using `:rand.uniform/1`).  If that child fails, this node fails, if the child succeeds, this node succeeds.
+
+  ## Example
+
+      Node.random([:a, :b, :c]) |> BehaviorTree.start |> BehaviorTree.value # will be one of :a, :b, or :c
+
+      iex> tree = Node.sequence([
+      ...>          Node.random([:a, :b, :c]),
+      ...>          :d
+      ...>        ])
+      iex> tree |> BehaviorTree.start |> BehaviorTree.succeed |> BehaviorTree.value
+      :d
+  """
+  @spec random(nonempty_list()) :: __MODULE__.t()
+  def random(children) when is_list(children) and length(children) != 0 do
+    %__MODULE__{type: :random, children: children}
   end
 end
