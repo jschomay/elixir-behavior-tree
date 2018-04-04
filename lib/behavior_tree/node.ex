@@ -87,6 +87,7 @@ defmodule BehaviorTree.Node do
     def first_child(%BehaviorTree.Node{type: :random, children: children}, zipper) do
       random_index = :rand.uniform(Enum.count(children)) - 1
       n_times = [nil] |> Stream.cycle() |> Enum.take(random_index)
+
       zipper
       |> Zipper.down()
       |> (fn zipper -> Enum.reduce(n_times, zipper, fn _, z -> Zipper.right(z) end) end).()
@@ -94,75 +95,62 @@ defmodule BehaviorTree.Node do
 
     def first_child(_data, zipper), do: Zipper.down(zipper)
 
-    def on_succeed(%BehaviorTree.Node{type: type, repeat_count: repeat_count}, zipper) do
-      case type do
-        :sequence ->
-          case Zipper.right(zipper) do
-            {:error, :right_from_rightmost} ->
-              :succeed
-
-            next ->
-              next
-          end
-
-        :select ->
+    def on_succeed(%BehaviorTree.Node{type: :sequence}, zipper) do
+      case Zipper.right(zipper) do
+        {:error, :right_from_rightmost} ->
           :succeed
 
-        :repeat_until_fail ->
-          zipper
-
-        :repeat_until_succeed ->
-          :succeed
-
-        :repeat_n ->
-          if repeat_count > 1 do
-            zipper
-            |> Zipper.up()
-            |> Zipper.edit(&%BehaviorTree.Node{&1 | repeat_count: repeat_count - 1})
-            |> Zipper.down()
-          else
-            :succeed
-          end
-
-        :random ->
-          :succeed
+        next ->
+          next
       end
     end
+
+    def on_succeed(%BehaviorTree.Node{type: :select}, _zipper), do: :succeed
+
+    def on_succeed(%BehaviorTree.Node{type: :repeat_until_fail}, zipper), do: zipper
+
+    def on_succeed(%BehaviorTree.Node{type: :repeat_until_succeed}, _zipper), do: :succeed
+
+    def on_succeed(%BehaviorTree.Node{type: :repeat_n, repeat_count: repeat_count}, zipper) do
+      if repeat_count > 1 do
+        zipper
+        |> Zipper.up()
+        |> Zipper.edit(&%BehaviorTree.Node{&1 | repeat_count: repeat_count - 1})
+        |> Zipper.down()
+      else
+        :succeed
+      end
+    end
+
+    def on_succeed(%BehaviorTree.Node{type: :random}, _zipper), do: :succeed
+
+    def on_fail(%BehaviorTree.Node{type: :sequence}, _zipper), do: :fail
+
+    def on_fail(%BehaviorTree.Node{type: :select}, zipper) do
+      case Zipper.right(zipper) do
+        {:error, :right_from_rightmost} ->
+          :fail
+
+        next ->
+          next
+      end
+    end
+
+    def on_fail(%BehaviorTree.Node{type: :repeat_until_fail}, _zipper), do: :succeed
+    def on_fail(%BehaviorTree.Node{type: :repeat_until_succeed}, zipper), do: zipper
 
     def on_fail(%BehaviorTree.Node{type: type, repeat_count: repeat_count}, zipper) do
-      case type do
-        :sequence ->
-          :fail
-
-        :select ->
-          case Zipper.right(zipper) do
-            {:error, :right_from_rightmost} ->
-              :fail
-
-            next ->
-              next
-          end
-
-        :repeat_until_fail ->
-          :succeed
-
-        :repeat_until_succeed ->
-          zipper
-
-        :repeat_n ->
-          if repeat_count > 1 do
-            zipper
-            |> Zipper.up()
-            |> Zipper.edit(&%BehaviorTree.Node{&1 | repeat_count: repeat_count - 1})
-            |> Zipper.down()
-          else
-            :succeed
-          end
-
-        :random ->
-          :fail
+      if repeat_count > 1 do
+        zipper
+        |> Zipper.up()
+        |> Zipper.edit(&%BehaviorTree.Node{&1 | repeat_count: repeat_count - 1})
+        |> Zipper.down()
+      else
+        :succeed
       end
     end
+
+    def on_fail(%BehaviorTree.Node{type: :random}, _zipper), do: :fail
   end
 
   @doc """
