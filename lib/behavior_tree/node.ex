@@ -32,7 +32,7 @@ defprotocol BehaviorTree.Node.Protocol do
 
   The supplied zipper will be focused on your node, and you need to advance it to the starting child.  Usually `ExZipper.Zipper.down/1` would be desired.
   """
-  @spec first_child(any(), Zipper.t()) :: Zipper.t()
+  @spec first_child(any(), ExZipper.Zipper.t()) :: ExZipper.Zipper.t()
   def first_child(data, zipper)
 
   @doc """
@@ -42,7 +42,7 @@ defprotocol BehaviorTree.Node.Protocol do
 
   Note that you will need to handle any of the `t:ExZipper.Zipper.error/0` types (like `:right_from_rightmost`) appropriately.
   """
-  @spec on_fail(any(), Zipper.t()) :: Zipper.t() | :succeed | :fail
+  @spec on_fail(any(), ExZipper.Zipper.t()) :: ExZipper.Zipper.t() | :succeed | :fail
   def on_fail(data, zipper)
 
   @doc """
@@ -52,7 +52,7 @@ defprotocol BehaviorTree.Node.Protocol do
 
   Note that you will need to handle any of the `t:ExZipper.Zipper.error/0` types (like `:right_from_rightmost`) appropriately.
   """
-  @spec on_succeed(any(), Zipper.t()) :: Zipper.t() | :succeed | :fail
+  @spec on_succeed(any(), ExZipper.Zipper.t()) :: ExZipper.Zipper.t() | :succeed | :fail
   def on_succeed(data, zipper)
 end
 

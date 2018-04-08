@@ -17,6 +17,7 @@ defmodule BehaviorTree.Mixfile do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
+      dialyzer: [ignore_warnings: "config/dialyzer.ignore-warnings"],
       preferred_cli_env: [
         "coveralls": :test,
         "coveralls.detail": :test,
