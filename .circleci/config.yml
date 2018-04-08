@@ -1,20 +1,47 @@
+# dialyzer caching taken from http://randycoulman.com/blog/2017/08/08/building-elixir-apps-on-circleci-2-0/
 version: 2
 jobs:
   build:
     docker:
+      # Bump cache key version below when changing elixir version
       - image: circleci/elixir:1.6
     environment:
       - MIX_ENV: test
     working_directory: ~/repo
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - v1-dependency-cache-{{ checksum "mix.lock" }}
+            - v1-dependency-cache
       - run: mix local.hex --force
       - run: mix local.rebar --force
       - run: mix deps.get
-      - run: mix format lib/*.ex --check-formatted --dry-run
-      - run: mix credo
+      - run: mix deps.compile
       - run: mix compile --warnings-as-erros --force
+      - run:
+          command: mix compile
+          environment:
+            MIX_ENV: test
+      - save_cache:
+          key: v1-dependency-cache-{{ checksum "mix.lock" }}
+          paths:
+            - _build
+            - deps
+            - ~/.mix
+      - restore_cache:
+          keys:
+            - v1-plt-cache-{{ checksum "mix.lock" }}
+            - v1-plt-cache
+      - run: mix dialyzer --plt
+      - save_cache:
+          key: v1-plt-cache-{{ checksum "mix.lock" }}
+          paths:
+            - _build
+            - ~/.mix
+      - run: mix format lib/*.ex --check-formatted --dry-run
       - run: mix test
+      - run: mix credo
       - run: mix dialyzer --halt-exit-status
       - run: mix coveralls.json
       - run: bash <(curl -s https://codecov.io/bash)
