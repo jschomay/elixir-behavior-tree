@@ -74,8 +74,14 @@ defmodule BehaviorTree.Node do
   """
   alias ExZipper.Zipper
 
-  defstruct [:type, :children, :repeat_count]
-  @opaque t :: %__MODULE__{type: String.t(), children: list(any()), repeat_count: pos_integer()}
+  defstruct [:type, :children, :repeat_count, :weights]
+
+  @opaque t :: %__MODULE__{
+            type: String.t(),
+            children: list(any()),
+            repeat_count: pos_integer(),
+            weights: list(pos_integer())
+          }
 
   defimpl BehaviorTree.Node.Protocol do
     def set_children(%BehaviorTree.Node{} = data, children) do
@@ -86,6 +92,24 @@ defmodule BehaviorTree.Node do
 
     def first_child(%BehaviorTree.Node{type: :random, children: children}, zipper) do
       random_index = :rand.uniform(Enum.count(children)) - 1
+      n_times = [nil] |> Stream.cycle() |> Enum.take(random_index)
+
+      zipper
+      |> Zipper.down()
+      |> (fn zipper -> Enum.reduce(n_times, zipper, fn _, z -> Zipper.right(z) end) end).()
+    end
+
+    def first_child(%BehaviorTree.Node{type: :random_weighted, weights: weights}, zipper) do
+      weighted_total = Enum.reduce(weights, 0, fn weight, sum -> sum + weight end)
+      random_weighted_index = :rand.uniform(weighted_total)
+
+      random_index =
+        Enum.reduce_while(weights, {0, random_weighted_index}, fn weight, {i, remaining_weight} ->
+          if remaining_weight - weight <= 0,
+            do: {:halt, i},
+            else: {:cont, {i + 1, remaining_weight - weight}}
+        end)
+
       n_times = [nil] |> Stream.cycle() |> Enum.take(random_index)
 
       zipper
@@ -124,6 +148,8 @@ defmodule BehaviorTree.Node do
 
     def on_succeed(%BehaviorTree.Node{type: :random}, _zipper), do: :succeed
 
+    def on_succeed(%BehaviorTree.Node{type: :random_weighted}, _zipper), do: :succeed
+
     def on_fail(%BehaviorTree.Node{type: :sequence}, _zipper), do: :fail
 
     def on_fail(%BehaviorTree.Node{type: :select}, zipper) do
@@ -137,9 +163,10 @@ defmodule BehaviorTree.Node do
     end
 
     def on_fail(%BehaviorTree.Node{type: :repeat_until_fail}, _zipper), do: :succeed
+
     def on_fail(%BehaviorTree.Node{type: :repeat_until_succeed}, zipper), do: zipper
 
-    def on_fail(%BehaviorTree.Node{type: type, repeat_count: repeat_count}, zipper) do
+    def on_fail(%BehaviorTree.Node{type: :repeat_n, repeat_count: repeat_count}, zipper) do
       if repeat_count > 1 do
         zipper
         |> Zipper.up()
@@ -151,6 +178,8 @@ defmodule BehaviorTree.Node do
     end
 
     def on_fail(%BehaviorTree.Node{type: :random}, _zipper), do: :fail
+
+    def on_fail(%BehaviorTree.Node{type: :random_weighted}, _zipper), do: :fail
   end
 
   @doc """
@@ -328,5 +357,34 @@ defmodule BehaviorTree.Node do
   @spec random(nonempty_list()) :: __MODULE__.t()
   def random(children) when is_list(children) and length(children) != 0 do
     %__MODULE__{type: :random, children: children}
+  end
+
+  @doc """
+  Create a "random_weighted" style "decorator" node.
+
+  This node takes multiple children with associated weights, from which it will randomly pick one to run, taking the weighting into account (using `:rand.uniform/1`).  If that child fails, this node fails, if the child succeeds, this node succeeds.
+
+  Note that `BehaviorTree.value` will return only the value (the first position of the supplied tuple).
+
+  ## Example
+
+      
+      Node.random_weighted([{:a, 2}, {:b, 1}]) |> BehaviorTree.start() |> BehaviorTree.value()
+      # :a will be returned twice as often as :b
+
+      iex> tree = Node.sequence([
+      ...>          Node.random_weighted([{:a, 2}, {:b, 1}]),
+      ...>          :d
+      ...>        ])
+      iex> tree |> BehaviorTree.start |> BehaviorTree.succeed |> BehaviorTree.value
+      :d
+  """
+  @spec random_weighted(nonempty_list({any(), pos_integer()})) :: __MODULE__.t()
+  def random_weighted(children) when is_list(children) and length(children) != 0 do
+    %__MODULE__{
+      type: :random_weighted,
+      children: Enum.map(children, &elem(&1, 0)),
+      weights: Enum.map(children, &elem(&1, 1))
+    }
   end
 end

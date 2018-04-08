@@ -69,7 +69,37 @@ defmodule BehaviorTreeTest do
            |> BehaviorTree.value() == :b
   end
 
-  # TODO `randomly_weighted`
+  test "random_weighted" do
+    # This attempts to test results form :rand.uniform/2, which means it will
+    # either be flaky or an approximation, but still useful
+    #
+    ratio =
+      Enum.reduce(1..300, {0, 0, 0}, fn _, {a, b, c} ->
+        value =
+          [{:a, 3}, {:b, 2}, {:c, 1}]
+          |> Node.random_weighted()
+          |> BehaviorTree.start()
+          |> BehaviorTree.value()
+
+        case value do
+          :a ->
+            {a + 1, b, c}
+
+          :b ->
+            {a, b + 1, c}
+
+          :c ->
+            {a, b, c + 1}
+        end
+      end)
+
+    {a, b, c} = ratio
+    # The flaky part (increasing the range would help, but would be slower):
+    # assert {round(a / c), round(b / c), 1} == {3, 2, 1}
+    # Less flaky, but less informative
+    assert a > b > c
+  end
+
   # TODO run dialyzer
   # TODO update changelog, bump and release
 end
