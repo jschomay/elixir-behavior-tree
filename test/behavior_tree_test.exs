@@ -99,6 +99,4 @@ defmodule BehaviorTreeTest do
     # Less flaky, but less informative
     assert a > b > c
   end
-
-  # TODO update changelog, bump and release
 end
