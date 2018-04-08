@@ -74,11 +74,18 @@ defmodule BehaviorTree.Node do
   """
   alias ExZipper.Zipper
 
-  defstruct [:type, :children, :repeat_count, :weights]
+  defstruct [:type, :children, repeat_count: 1, weights: []]
 
   @opaque t :: %__MODULE__{
-            type: String.t(),
-            children: list(any()),
+            type:
+              :select
+              | :sequence
+              | :repeat_until_succeed
+              | :repeat_until_fail
+              | :repeat_n
+              | :random
+              | :random_weighted,
+            children: nonempty_list(any()),
             repeat_count: pos_integer(),
             weights: list(pos_integer())
           }
@@ -100,7 +107,7 @@ defmodule BehaviorTree.Node do
     end
 
     def first_child(%BehaviorTree.Node{type: :random_weighted, weights: weights}, zipper) do
-      weighted_total = Enum.reduce(weights, 0, fn weight, sum -> sum + weight end)
+      weighted_total = Enum.reduce(weights, fn weight, sum -> sum + weight end)
       random_weighted_index = :rand.uniform(weighted_total)
 
       random_index =
@@ -208,7 +215,7 @@ defmodule BehaviorTree.Node do
       :c
 
   """
-  @spec select(nonempty_list()) :: __MODULE__.t()
+  @spec select(nonempty_list(any())) :: __MODULE__.t()
   def select(children) when is_list(children) and length(children) != 0 do
     %__MODULE__{type: :select, children: children}
   end
@@ -238,7 +245,7 @@ defmodule BehaviorTree.Node do
       iex> tree |> BehaviorTree.start |> BehaviorTree.fail |> BehaviorTree.value
       :c
   """
-  @spec sequence(nonempty_list()) :: __MODULE__.t()
+  @spec sequence(nonempty_list(any())) :: __MODULE__.t()
   def sequence(children) when is_list(children) and length(children) != 0 do
     %__MODULE__{type: :sequence, children: children}
   end
@@ -354,7 +361,7 @@ defmodule BehaviorTree.Node do
       iex> tree |> BehaviorTree.start |> BehaviorTree.succeed |> BehaviorTree.value
       :d
   """
-  @spec random(nonempty_list()) :: __MODULE__.t()
+  @spec random(nonempty_list(any())) :: __MODULE__.t()
   def random(children) when is_list(children) and length(children) != 0 do
     %__MODULE__{type: :random, children: children}
   end

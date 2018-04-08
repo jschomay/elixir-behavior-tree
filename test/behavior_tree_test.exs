@@ -100,6 +100,5 @@ defmodule BehaviorTreeTest do
     assert a > b > c
   end
 
-  # TODO run dialyzer
   # TODO update changelog, bump and release
 end
