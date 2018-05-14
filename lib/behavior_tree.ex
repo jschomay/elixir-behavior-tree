@@ -32,6 +32,8 @@ defmodule BehaviorTree do
 
   > Note, This example splits up the code into two parts: 1) the tree itself, which only expresses what it wants to do at any given step, and 2) the "handler" code, which interprets the tree's intent, does the appropriate work, and updates the tree with the outcome.  An alternative approach would be to load the tree's leafs with functions that could be called directly.
 
+  (You can jump directly to the [fully implemented AI code](https://github.com/jschomay/elixir-battleship-guesser/blob/master/lib/ai.ex)).
+
   #### AI "A" - random guessing
 
   This AI doesn't really have a strategy, and doesn't require a behavior tree, but it is a place to start.

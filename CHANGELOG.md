@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+Add 3 new nodes:
+
+- `negate`
+- `always_succeed`
+- `always_fail`
+
 ## 0.2.0
 
 Switch to protocol-based implementation (allows for defining custom nodes), which changes the api for creating nodes.

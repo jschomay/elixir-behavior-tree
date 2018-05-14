@@ -8,7 +8,7 @@ defmodule BehaviorTree.Mixfile do
       app: :behavior_tree,
       name: "Behavior Tree",
       description: "A library for building AI's via composable behavior trees.",
-      version: "0.2.0",
+      version: "0.3.0",
       source_url: @github_url,
       homepage_url: @github_url,
       files: ~w(mix.exs lib LICENSE README.md CHANGELOG.md),
