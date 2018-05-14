@@ -84,7 +84,10 @@ defmodule BehaviorTree.Node do
               | :repeat_until_fail
               | :repeat_n
               | :random
-              | :random_weighted,
+              | :random_weighted
+              | :always_succeed
+              | :always_fail
+              | :negate,
             children: nonempty_list(any()),
             repeat_count: pos_integer(),
             weights: list(pos_integer())
@@ -157,6 +160,12 @@ defmodule BehaviorTree.Node do
 
     def on_succeed(%BehaviorTree.Node{type: :random_weighted}, _zipper), do: :succeed
 
+    def on_succeed(%BehaviorTree.Node{type: :always_succeed}, _zipper), do: :succeed
+
+    def on_succeed(%BehaviorTree.Node{type: :always_fail}, _zipper), do: :fail
+
+    def on_succeed(%BehaviorTree.Node{type: :negate}, _zipper), do: :fail
+
     def on_fail(%BehaviorTree.Node{type: :sequence}, _zipper), do: :fail
 
     def on_fail(%BehaviorTree.Node{type: :select}, zipper) do
@@ -187,6 +196,12 @@ defmodule BehaviorTree.Node do
     def on_fail(%BehaviorTree.Node{type: :random}, _zipper), do: :fail
 
     def on_fail(%BehaviorTree.Node{type: :random_weighted}, _zipper), do: :fail
+
+    def on_fail(%BehaviorTree.Node{type: :always_succeed}, _zipper), do: :succeed
+
+    def on_fail(%BehaviorTree.Node{type: :always_fail}, _zipper), do: :fail
+
+    def on_fail(%BehaviorTree.Node{type: :negate}, _zipper), do: :succeed
   end
 
   @doc """
@@ -393,5 +408,76 @@ defmodule BehaviorTree.Node do
       children: Enum.map(children, &elem(&1, 0)),
       weights: Enum.map(children, &elem(&1, 1))
     }
+  end
+
+  @doc """
+  Create an "always_succeed" style "decorator" node.
+
+  This node takes a single child, and will always succeed, regardless of the outcome of the child.
+
+  This may be useful when used in combination with the "random" nodes.
+
+  ## Example
+
+      iex> tree = Node.sequence([
+      ...>          Node.always_succeed(:a),
+      ...>          :b
+      ...>        ])
+      iex> tree |> BehaviorTree.start |> BehaviorTree.value
+      :a
+      iex> tree |> BehaviorTree.start |> BehaviorTree.fail |> BehaviorTree.value
+      :b
+  """
+  @spec always_succeed(any()) :: __MODULE__.t()
+  def always_succeed(child) do
+    %__MODULE__{type: :always_succeed, children: [child]}
+  end
+
+  @doc """
+  Create an "always_fail" style "decorator" node.
+
+  This node takes a single child, and will always fail, regardless of the outcome of the child.
+
+  This may be useful when used in combination with the "random" nodes.
+
+  ## Example
+
+      iex> tree = Node.sequence([
+      ...>          Node.always_fail(:a),
+      ...>          :b
+      ...>        ])
+      iex> tree |> BehaviorTree.start |> BehaviorTree.value
+      :a
+      iex> tree |> BehaviorTree.start |> BehaviorTree.succeed |> BehaviorTree.value
+      :a
+  """
+  @spec always_fail(any()) :: __MODULE__.t()
+  def always_fail(child) do
+    %__MODULE__{type: :always_fail, children: [child]}
+  end
+
+  @doc """
+  Create a "negate" style "decorator" node.
+
+  This node takes a single child.  If the child fails, this node succeeds.  If the child succeeds, this node fails.
+
+  This may be useful to simplify handlers code.
+
+  ## Example
+
+      iex> tree = Node.sequence([
+      ...>          Node.negate(:a),
+      ...>          :b
+      ...>        ])
+      iex> tree |> BehaviorTree.start |> BehaviorTree.value
+      :a
+      iex> tree |> BehaviorTree.start |> BehaviorTree.succeed |> BehaviorTree.value
+      :a
+      iex> tree |> BehaviorTree.start |> BehaviorTree.fail |> BehaviorTree.value
+      :b
+  """
+  @spec negate(any()) :: __MODULE__.t()
+  def negate(child) do
+    %__MODULE__{type: :negate, children: [child]}
   end
 end
