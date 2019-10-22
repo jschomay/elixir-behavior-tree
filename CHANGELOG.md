@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+Fix bug with nested repeat_n bugs not repeating correctly
+
 ## 0.3.0
 
 Add 3 new nodes:

@@ -13,7 +13,7 @@ Add `behavior_tree` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
-  [{:behavior_tree, "~> 0.3.0"}]
+  [{:behavior_tree, "~> 0.3.1"}]
 end
 ```
 
