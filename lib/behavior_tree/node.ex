@@ -74,7 +74,7 @@ defmodule BehaviorTree.Node do
   """
   alias ExZipper.Zipper
 
-  defstruct [:type, :children, repeat_count: 1, weights: []]
+  defstruct [:type, :children, repeat_count: 1, repeat_total: 1, weights: []]
 
   @opaque t :: %__MODULE__{
             type:
@@ -90,6 +90,7 @@ defmodule BehaviorTree.Node do
               | :negate,
             children: nonempty_list(any()),
             repeat_count: pos_integer(),
+            repeat_total: pos_integer(),
             weights: list(pos_integer())
           }
 
@@ -125,6 +126,12 @@ defmodule BehaviorTree.Node do
       zipper
       |> Zipper.down()
       |> (fn zipper -> Enum.reduce(n_times, zipper, fn _, z -> Zipper.right(z) end) end).()
+    end
+
+    def first_child(%BehaviorTree.Node{type: :repeat_n, repeat_total: repeat_total}, zipper) do
+      zipper
+      |> Zipper.edit(&%BehaviorTree.Node{&1 | repeat_count: repeat_total})
+      |> Zipper.down()
     end
 
     def first_child(_data, zipper), do: Zipper.down(zipper)
@@ -357,7 +364,7 @@ defmodule BehaviorTree.Node do
   """
   @spec repeat_n(pos_integer, any()) :: __MODULE__.t()
   def repeat_n(n, child) when n > 1 do
-    %__MODULE__{type: :repeat_n, children: [child], repeat_count: n}
+    %__MODULE__{type: :repeat_n, children: [child], repeat_total: n, repeat_count: n}
   end
 
   @doc """

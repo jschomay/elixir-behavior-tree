@@ -69,6 +69,22 @@ defmodule BehaviorTreeTest do
            |> BehaviorTree.value() == :b
   end
 
+  test "nesting repeat_n (resets internal state)" do
+    nested =
+      Node.sequence([
+        Node.repeat_n(2, Node.repeat_n(2, :a)),
+        :b
+      ])
+
+    assert nested
+    |> BehaviorTree.start()
+    |> BehaviorTree.succeed()
+    |> BehaviorTree.succeed()
+    |> BehaviorTree.succeed()
+    |> BehaviorTree.value()
+    == :a
+  end
+
   test "random_weighted" do
     # This attempts to test results form :rand.uniform/2, which means it will
     # either be flaky or an approximation, but still useful
