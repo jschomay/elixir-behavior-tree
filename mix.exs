@@ -54,7 +54,7 @@ defmodule BehaviorTree.Mixfile do
   defp deps do
     [
       {:ex_doc, "~> 0.29", only: :dev, runtime: false},
-      {:ex_zipper, "~> 0.1.3"},
+      {:ex_zipper, git: "https://github.com/mikowitz/ex_zipper"},
       {:credo, "~> 1.0", only: [:dev, :test], runtime: false},
       {:mix_test_watch, "~> 1.1.0", only: :dev, runtime: false},
       {:excoveralls, "~> 0.16", only: :test},
