@@ -19,7 +19,7 @@ defmodule BehaviorTree.Mixfile do
       test_coverage: [tool: ExCoveralls],
       dialyzer: [ignore_warnings: "config/dialyzer.ignore-warnings"],
       preferred_cli_env: [
-        "coveralls": :test,
+        coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.post": :test,
         "coveralls.html": :test
