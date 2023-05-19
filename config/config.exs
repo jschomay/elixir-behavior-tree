@@ -1,8 +1,8 @@
 # This file is responsible for configuring your application
 # and its dependencies with the aid of the Mix.Config module.
-use Mix.Config
+import Config
 
-if Mix.env == :dev do
+if config_env() == :dev do
   config :mix_test_watch,
     tasks: [
       "test",

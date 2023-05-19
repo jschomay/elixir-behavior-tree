@@ -28,7 +28,7 @@ defmodule BehaviorTree.Mixfile do
         maintainers: ["Jeff Schomay"],
         licenses: ["MIT"],
         links: %{
-          "GitHub" => @github_url,
+          "GitHub" => @github_url
         }
       ]
     ]
@@ -53,12 +53,12 @@ defmodule BehaviorTree.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:ex_doc, "~> 0.16", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.29", only: :dev, runtime: false},
       {:ex_zipper, "~> 0.1.3"},
-      {:credo, "~> 0.9.0-rc1", only: [:dev, :test], runtime: false},
-      {:mix_test_watch, "~> 0.5", only: :dev, runtime: false},
-      {:excoveralls, "~> 0.8", only: :test},
-      {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:mix_test_watch, "~> 1.1.0", only: :dev, runtime: false},
+      {:excoveralls, "~> 0.16", only: :test},
+      {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false}
     ]
   end
 end
